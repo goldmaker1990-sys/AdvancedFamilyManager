@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>Advanced Family Manager</Name>
+    <Assembly>E:\AdvancedFamilyManager\bin\Debug\net48\AdvancedFamilyManager.dll</Assembly>
+    <AddInId>8A4B3C2D-1E5F-4A6B-9C8D-7E6F5A4B3C2D</AddInId>
+    <FullClassName>AdvancedFamilyManager.App</FullClassName>
+    <VendorId>Dr. BELABED</VendorId>
+  </AddIn>
+</RevitAddIns>

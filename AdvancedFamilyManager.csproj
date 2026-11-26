@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\$(Configuration)\$(TargetFramework)\</OutputPath>
+    <IntermediateOutputPath>obj\$(Configuration)\$(TargetFramework)\</IntermediateOutputPath>
+  </PropertyGroup>
+
+  <!-- Embed PNG icons directly inside the compiled DLL -->
+  <ItemGroup>
+    <EmbeddedResource Include="icon16.png" />
+    <EmbeddedResource Include="icon32.png" />
+  </ItemGroup>
+
+  <!-- Shared Dependencies for all Revit versions -->
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <!-- Revit 2019-2024 (.NET Framework 4.8) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="2023.1.1" />
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="2023.1.1" />
+  </ItemGroup>
+
+  <!-- Revit 2025-2030 (.NET 8.0) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="2025.4.60" />
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="2025.4.60" />
+  </ItemGroup>
+</Project>

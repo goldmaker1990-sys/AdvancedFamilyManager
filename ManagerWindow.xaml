@@ -1,0 +1,429 @@
+<Window x:Class="AdvancedFamilyManager.ManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:AdvancedFamilyManager"
+        Title="Advanced Family Manager" Height="680" Width="1120"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BgWindow}" Foreground="{DynamicResource FgPrimary}"
+        Closing="ManagerWindow_Closing">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <local:CardHeightConverter x:Key="CardHeightConverter"/>
+
+        <!-- Default Dark Palette (overridden dynamically in code-behind when Revit is Light) -->
+        <SolidColorBrush x:Key="BgWindow" Color="#1E1E1E"/>
+        <SolidColorBrush x:Key="BgSurface" Color="#252526"/>
+        <SolidColorBrush x:Key="BgCard" Color="#2D2D30"/>
+        <SolidColorBrush x:Key="BgInput" Color="#2D2D30"/>
+        <SolidColorBrush x:Key="BgHover" Color="#3E3E42"/>
+        <SolidColorBrush x:Key="BgThumb" Color="#1E1E1E"/>
+        <SolidColorBrush x:Key="FgPrimary" Color="#F0F0F0"/>
+        <SolidColorBrush x:Key="FgList" Color="#E0E0E0"/>
+        <SolidColorBrush x:Key="FgSecondary" Color="#AAAAAA"/>
+        <SolidColorBrush x:Key="FgMuted" Color="#777777"/>
+        <SolidColorBrush x:Key="FgCategoryHeader" Color="#9CDCFE"/>
+        <SolidColorBrush x:Key="FgSubfolderHeader" Color="#CE9178"/>
+        <SolidColorBrush x:Key="BorderBrushMain" Color="#3E3E42"/>
+        <SolidColorBrush x:Key="BorderBrushCard" Color="#3F3F46"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#007ACC"/>
+        <SolidColorBrush x:Key="LoadPlaceBrush" Color="#28A745"/>
+
+        <Style x:Key="ThemedMenuItem" TargetType="MenuItem">
+            <Setter Property="Background" Value="{DynamicResource BgCard}"/>
+            <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgHover}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource FgMuted}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ThemedSeparator" TargetType="Separator">
+            <Setter Property="Background" Value="{DynamicResource BorderBrushMain}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Separator">
+                        <Border Background="{TemplateBinding Background}" Height="1" Margin="0,4"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- TOP BAR -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="180"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Button x:Name="BtnSelectFolder" Content="📁 Browse..." 
+                    Click="BtnSelectFolder_Click" Padding="10,6" Margin="0,0,8,0"
+                    Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0" FontWeight="SemiBold"/>
+
+            <TextBox x:Name="TxtLibraryPath" Grid.Column="1" Height="28" Padding="6,2"
+                     Background="{DynamicResource BgInput}" Foreground="{DynamicResource FgPrimary}"
+                     CaretBrush="{DynamicResource FgPrimary}" BorderBrush="{DynamicResource BorderBrushMain}"
+                     VerticalContentAlignment="Center"
+                     KeyDown="TxtLibraryPath_KeyDown"
+                     LostKeyboardFocus="TxtLibraryPath_LostKeyboardFocus"
+                     ToolTip="Enter or paste root family folder path and press Enter"/>
+
+            <Button x:Name="BtnShowPaths" Grid.Column="2" Content="▼" Click="BtnShowPaths_Click"
+                    Width="28" Height="28" Margin="2,0,0,0"
+                    Background="{DynamicResource BgHover}" Foreground="{DynamicResource FgPrimary}" BorderThickness="0"
+                    ToolTip="Select from detected Revit library paths">
+                <Button.ContextMenu>
+                    <ContextMenu x:Name="MenuLibraryPaths" Background="{DynamicResource BgCard}"
+                                 Foreground="{DynamicResource FgPrimary}" BorderBrush="{DynamicResource BorderBrushMain}">
+                        <ContextMenu.Resources>
+                            <Style TargetType="MenuItem" BasedOn="{StaticResource ThemedMenuItem}"/>
+                        </ContextMenu.Resources>
+                    </ContextMenu>
+                </Button.ContextMenu>
+            </Button>
+
+            <CheckBox x:Name="ChkGlobalSearch" Grid.Column="3" Content="Search All Folders" 
+                      Foreground="{DynamicResource FgSecondary}" VerticalAlignment="Center" Margin="12,0,8,0"
+                      Checked="ChkGlobalSearch_Changed" Unchecked="ChkGlobalSearch_Changed"
+                      ToolTip="When checked, search scans the entire library. When unchecked, search scans only the active folder."/>
+
+            <TextBox x:Name="TxtSearch" Grid.Column="4" Height="28" Padding="6,2" 
+                     Background="{DynamicResource BgInput}" Foreground="{DynamicResource FgPrimary}"
+                     CaretBrush="{DynamicResource FgPrimary}" BorderBrush="{DynamicResource BorderBrushMain}"
+                     VerticalContentAlignment="Center" KeyDown="TxtSearch_KeyDown"
+                     ToolTip="Type search term and press Enter or click Search..."/>
+
+            <Button x:Name="BtnSearch" Grid.Column="5" Content="🔍" Click="BtnSearch_Click" 
+                    Width="32" Height="28" Margin="4,0,0,0"
+                    Background="{DynamicResource BgHover}" Foreground="{DynamicResource FgPrimary}" BorderThickness="0"
+                    ToolTip="Click to search"/>
+
+            <Button x:Name="BtnRefresh" Grid.Column="6" Content="🔄" Click="BtnRefresh_Click"
+                    Width="32" Height="28" Margin="4,0,0,0"
+                    Background="{DynamicResource BgHover}" Foreground="{DynamicResource FgPrimary}" BorderThickness="0"
+                    ToolTip="Refresh current view"/>
+        </Grid>
+
+        <!-- MAIN CONTENT WITH DRAGGABLE SPLITTER -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="ColSidebar" Width="270" MinWidth="180"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT SIDEBAR -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- EXPANDABLE CATEGORY TREE + LIVE FILTER -->
+                <DockPanel Grid.Row="0">
+                    <TextBlock DockPanel.Dock="Top" Text="CATEGORIES (FOLDER TREE)" 
+                               FontWeight="Bold" FontSize="11" Foreground="{DynamicResource FgCategoryHeader}" Margin="0,0,0,6"/>
+
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox x:Name="TxtCategoryFilter" Height="24" Padding="6,1"
+                                 Background="{DynamicResource BgInput}" Foreground="{DynamicResource FgPrimary}"
+                                 CaretBrush="{DynamicResource FgPrimary}" BorderBrush="{DynamicResource BorderBrushMain}"
+                                 VerticalContentAlignment="Center"
+                                 TextChanged="TxtCategoryFilter_TextChanged"
+                                 ToolTip="Type to filter categories in real time..."/>
+
+                        <TextBlock Text="Filter categories..." IsHitTestVisible="False"
+                                   Foreground="{DynamicResource FgMuted}" FontStyle="Italic" FontSize="11"
+                                   VerticalAlignment="Center" Margin="8,0,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding Text, ElementName=TxtCategoryFilter}" Value=""/>
+                                                <Condition Binding="{Binding IsKeyboardFocused, ElementName=TxtCategoryFilter}" Value="False"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <Button x:Name="BtnClearCategoryFilter" Grid.Column="1" Content="✕"
+                                Click="BtnClearCategoryFilter_Click"
+                                Width="24" Height="24" Margin="2,0,0,0"
+                                Background="{DynamicResource BgHover}" Foreground="{DynamicResource FgPrimary}"
+                                BorderThickness="0" ToolTip="Clear category filter"/>
+                    </Grid>
+
+                    <TreeView x:Name="TreeCategories"
+                              SelectedItemChanged="TreeCategories_SelectedItemChanged"
+                              Background="{DynamicResource BgSurface}" Foreground="{DynamicResource FgList}"
+                              BorderBrush="{DynamicResource BorderBrushMain}" Padding="4">
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="TreeViewItem">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource FgList}"/>
+                                <Setter Property="Padding" Value="2"/>
+                            </Style>
+                        </TreeView.ItemContainerStyle>
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate DataType="{x:Type local:CategoryNode}" ItemsSource="{Binding Children}">
+                                <TextBlock Text="{Binding DisplayText}">
+                                    <TextBlock.ContextMenu>
+                                        <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                                     Background="{DynamicResource BgCard}" Foreground="{DynamicResource FgPrimary}"
+                                                     BorderBrush="{DynamicResource BorderBrushMain}">
+                                            <ContextMenu.Resources>
+                                                <Style TargetType="MenuItem" BasedOn="{StaticResource ThemedMenuItem}"/>
+                                            </ContextMenu.Resources>
+                                            <MenuItem Header="Add All to Favorites" Click="CtxCategoryAddFav_Click"/>
+                                        </ContextMenu>
+                                    </TextBlock.ContextMenu>
+                                </TextBlock>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </DockPanel>
+
+                <!-- SUBFOLDER FILTER BOX BETWEEN TREE AND SUBFOLDERS LIST -->
+                <DockPanel Grid.Row="1" Margin="0,8,0,6">
+                    <TextBlock DockPanel.Dock="Top" Text="SUBFOLDERS (FILTER)" 
+                               FontWeight="Bold" FontSize="11" Foreground="{DynamicResource FgSubfolderHeader}" Margin="0,0,0,4"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox x:Name="TxtSubfolderFilter" Height="24" Padding="6,1"
+                                 Background="{DynamicResource BgInput}" Foreground="{DynamicResource FgPrimary}"
+                                 CaretBrush="{DynamicResource FgPrimary}" BorderBrush="{DynamicResource BorderBrushMain}"
+                                 VerticalContentAlignment="Center"
+                                 TextChanged="TxtSubfolderFilter_TextChanged"
+                                 ToolTip="Type to filter subfolders in real time..."/>
+
+                        <TextBlock Text="Filter subfolders..." IsHitTestVisible="False"
+                                   Foreground="{DynamicResource FgMuted}" FontStyle="Italic" FontSize="11"
+                                   VerticalAlignment="Center" Margin="8,0,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding Text, ElementName=TxtSubfolderFilter}" Value=""/>
+                                                <Condition Binding="{Binding IsKeyboardFocused, ElementName=TxtSubfolderFilter}" Value="False"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <Button x:Name="BtnClearSubfolderFilter" Grid.Column="1" Content="✕"
+                                Click="BtnClearSubfolderFilter_Click"
+                                Width="24" Height="24" Margin="2,0,0,0"
+                                Background="{DynamicResource BgHover}" Foreground="{DynamicResource FgPrimary}"
+                                BorderThickness="0" ToolTip="Clear subfolder filter"/>
+                    </Grid>
+                </DockPanel>
+
+                <!-- SUBFOLDERS LIST -->
+                <DockPanel Grid.Row="2">
+                    <ListBox x:Name="LstSubfolders" SelectionChanged="LstSubfolders_SelectionChanged"
+                             Background="{DynamicResource BgSurface}" Foreground="{DynamicResource FgList}"
+                             BorderBrush="{DynamicResource BorderBrushMain}" Padding="4">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayText}">
+                                    <TextBlock.ContextMenu>
+                                        <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                                     Background="{DynamicResource BgCard}" Foreground="{DynamicResource FgPrimary}"
+                                                     BorderBrush="{DynamicResource BorderBrushMain}">
+                                            <ContextMenu.Resources>
+                                                <Style TargetType="MenuItem" BasedOn="{StaticResource ThemedMenuItem}"/>
+                                            </ContextMenu.Resources>
+                                            <MenuItem Header="Add All to Favorites" Click="CtxSubfolderAddFav_Click"/>
+                                        </ContextMenu>
+                                    </TextBlock.ContextMenu>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Grid>
+
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
+                          Background="{DynamicResource BorderBrushMain}" Cursor="SizeWE"/>
+
+            <!-- RIGHT PANEL -->
+            <DockPanel Grid.Column="2" Margin="6,0,0,0">
+                <TextBlock x:Name="TxtStatusCount" DockPanel.Dock="Top" Text="0 Families Found" 
+                           FontSize="12" Foreground="{DynamicResource FgSecondary}" Margin="0,0,0,6"/>
+
+                <ListBox x:Name="LstFamilies" MouseDoubleClick="LstFamilies_MouseDoubleClick"
+                         KeyDown="LstFamilies_KeyDown"
+                         SelectionMode="Extended"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         Background="{DynamicResource BgSurface}" BorderBrush="{DynamicResource BorderBrushMain}">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel IsItemsHost="True"/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="0"/>
+                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Bd" Background="Transparent" BorderThickness="2"
+                                                BorderBrush="Transparent" Padding="0" CornerRadius="6">
+                                            <ContentPresenter/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource FgSecondary}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Width="{Binding Value, ElementName=CardSizeSlider}" 
+                                    Height="{Binding Value, ElementName=CardSizeSlider, Converter={StaticResource CardHeightConverter}}"
+                                    Margin="6" Padding="8" 
+                                    Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource BorderBrushCard}"
+                                    BorderThickness="1" CornerRadius="4">
+                                <Border.ContextMenu>
+                                    <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                                 Background="{DynamicResource BgCard}" Foreground="{DynamicResource FgPrimary}"
+                                                 BorderBrush="{DynamicResource BorderBrushMain}">
+                                        <ContextMenu.Resources>
+                                            <Style TargetType="MenuItem" BasedOn="{StaticResource ThemedMenuItem}"/>
+                                            <Style TargetType="Separator" BasedOn="{StaticResource ThemedSeparator}"/>
+                                        </ContextMenu.Resources>
+                                        <MenuItem Header="Load Into Project" Click="CtxLoadOnly_Click"/>
+                                        <MenuItem Header="Load &amp; Place" Click="CtxLoadAndPlace_Click"/>
+                                        <Separator/>
+                                        <MenuItem Header="Open Containing Folder" Click="CtxOpenFolder_Click"/>
+                                        <MenuItem Header="Copy Full Path" Click="CtxCopyPath_Click"/>
+                                        <MenuItem Header="Copy Name" Click="CtxCopyName_Click"/>
+                                        <Separator/>
+                                        <MenuItem Header="Toggle Favorite" Click="CtxToggleFavorite_Click"/>
+                                    </ContextMenu>
+                                </Border.ContextMenu>
+
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Border Grid.Row="0" Background="{DynamicResource BgThumb}" CornerRadius="2" Margin="0,0,0,6">
+                                        <Grid>
+                                            <TextBlock Text="📄" FontSize="36" Foreground="{DynamicResource BorderBrushMain}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <Image Source="{Binding Thumbnail}" Stretch="Uniform" Margin="4"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <StackPanel Grid.Row="1">
+                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource FgPrimary}" FontWeight="SemiBold"
+                                                   FontSize="12" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/>
+                                        <TextBlock Text="{Binding SubCategory}" Foreground="{DynamicResource FgSecondary}" 
+                                                   FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="⭐" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                               Margin="0,2,2,0" Foreground="#FFD700"
+                                               Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Grid>
+
+        <!-- BOTTOM ACTION BAR -->
+        <Grid Grid.Row="2" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="Developed by Dr. BELABED" VerticalAlignment="Center" 
+                       Foreground="{DynamicResource FgMuted}" FontSize="11" FontStyle="Italic"/>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
+                <TextBlock Text="Card Size:" VerticalAlignment="Center" Foreground="{DynamicResource FgSecondary}" Margin="0,0,8,0"/>
+                <Slider x:Name="CardSizeSlider" Width="110" Minimum="110" Maximum="250" Value="145" 
+                        TickFrequency="10" IsSnapToTickEnabled="True"
+                        ValueChanged="CardSizeSlider_ValueChanged"
+                        ToolTip="Drag to resize cards"/>
+            </StackPanel>
+
+            <CheckBox x:Name="ChkOverwriteParams" Grid.Column="2" Content="Overwrite params on load"
+                      VerticalAlignment="Center" Margin="0,0,14,0" Foreground="{DynamicResource FgSecondary}"
+                      Checked="ChkOverwriteParams_Changed" Unchecked="ChkOverwriteParams_Changed"
+                      ToolTip="When checked, existing family parameters are overwritten when the family already exists in the project."/>
+
+            <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="BtnLoadOnly" Content="Load Into Project" Click="BtnLoadOnly_Click" 
+                        Padding="14,8" Margin="0,0,8,0" Background="{DynamicResource BgHover}"
+                        Foreground="{DynamicResource FgPrimary}" BorderThickness="0"/>
+                <Button x:Name="BtnLoadAndPlace" Content="Load &amp; Place Family" Click="BtnLoadAndPlace_Click" 
+                        Padding="16,8" Background="{DynamicResource LoadPlaceBrush}" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
